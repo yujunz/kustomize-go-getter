@@ -1,0 +1,6 @@
+apiVersion: yuju.nz/v1
+kind: GoGetter
+metadata:
+  name: dummy
+url: github.com/kustless/external-dns.git
+overlay: base

@@ -1,0 +1,49 @@
+#!/bin/bash
+# Copyright 2019 The Kubernetes Authors.
+# SPDX-License-Identifier: Apache-2.0
+
+# HashiCorp go-getter
+#
+# Reads a file like this
+#
+#  apiVersion: yuju.nz/v1
+#  kind: GoGetter
+#  metadata:
+#    name: dummy
+#  url: github.com/kustless/external-dns.git
+#  overlay: base
+#
+# download kustomize deck and build it to to stdout
+#
+# Example execution:
+# ./plugin/yuju.nz/v1/gogetter/GoGetter goGetterConfig.yaml
+
+set -e
+
+# Yaml parsing is a ridiculous thing to do in bash,
+# but let's try:
+function parseYaml {
+  local file=$1
+  while read -r line
+  do
+    local k=${line%:*}
+    local v=${line#*:}
+
+    [ "$k" == "url" ] && url=$v
+    [ "$k" == "overlay" ] && overlay=$v
+  done <"$file"
+
+  # Trim leading space
+  url="${url#"${url%%[![:space:]]*}"}"
+  overlay="${overlay#"${overlay%%[![:space:]]*}"}"
+}
+
+TMP_DIR=$(mktemp -d)
+
+parseYaml $1
+
+mkdir -p $TMP_DIR && cd $TMP_DIR
+go-getter $url deck 2> /dev/null
+kustomize build deck/$overlay
+
+/bin/rm -rf $TMP_DIR
